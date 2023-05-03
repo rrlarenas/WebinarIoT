@@ -14,3 +14,11 @@ Aplicacion React para leer metricas desde backend
 
 ./Installers
 Instaladoires utiles
+
+Node Red Install
+
+sudo npm install -g --unsafe-perm node-red
+
+https://nodered.org/docs/getting-started/local
+
+

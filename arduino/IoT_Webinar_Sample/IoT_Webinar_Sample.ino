@@ -38,7 +38,7 @@ void loop() {
   // Leemos la temperatura en grados Fahrenheit
   float f = dht.readTemperature(true);
  
-  // Comprobamos si ha habido algún error en la lectura
+  // Comprobamos si hay algún error en la lectura
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println("Error obteniendo los datos del sensor DHT11");
     return;
@@ -59,16 +59,6 @@ void loop() {
   Serial.println("</Medicion>");
   flag = 0;
   }
-//  Serial.print("<Temperatura>");
-//  Serial.print(t);
-//  Serial.println("</Temperatura>");
-  //Serial.print(f);
-  //Serial.print(" *F\t");
-  //Serial.print("Indice de calor: ");
-  //Serial.print(hic);
-  //Serial.print(" *C ");
- // Serial.print(hif);
-  //Serial.println(" ");
 
   int Dato = Serial.read();
   if (Dato == '1'){
