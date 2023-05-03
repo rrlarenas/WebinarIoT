@@ -1,0 +1,153 @@
+[
+    {
+        "id": "b65264375b63208f",
+        "type": "tab",
+        "label": "Conexión COM4 Arduino",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "52ecc2c583dfac63",
+        "type": "debug",
+        "z": "b65264375b63208f",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 500,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "66fc3d658bcfac3a",
+        "type": "serial in",
+        "z": "b65264375b63208f",
+        "name": "",
+        "serial": "330d5f9a77bb4087",
+        "x": 170,
+        "y": 220,
+        "wires": [
+            [
+                "52ecc2c583dfac63",
+                "74a4a405d767b0a2"
+            ]
+        ]
+    },
+    {
+        "id": "25122e03116716a5",
+        "type": "mqtt out",
+        "z": "b65264375b63208f",
+        "name": "",
+        "topic": "DHT11",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "6fd3d273afae66f7",
+        "x": 710,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "74a4a405d767b0a2",
+        "type": "xml",
+        "z": "b65264375b63208f",
+        "name": "",
+        "property": "payload",
+        "attr": "",
+        "chr": "",
+        "x": 430,
+        "y": 220,
+        "wires": [
+            [
+                "25122e03116716a5"
+            ]
+        ]
+    },
+    {
+        "id": "69fe49ec11c1a84b",
+        "type": "mqtt in",
+        "z": "b65264375b63208f",
+        "name": "",
+        "topic": "LED",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "6fd3d273afae66f7",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 250,
+        "y": 40,
+        "wires": [
+            [
+                "52ecc2c583dfac63",
+                "8fd5186f0a76fe7c"
+            ]
+        ]
+    },
+    {
+        "id": "8fd5186f0a76fe7c",
+        "type": "serial out",
+        "z": "b65264375b63208f",
+        "name": "",
+        "serial": "330d5f9a77bb4087",
+        "x": 500,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "330d5f9a77bb4087",
+        "type": "serial-port",
+        "serialport": "COM4",
+        "serialbaud": "9600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": "10000"
+    },
+    {
+        "id": "6fd3d273afae66f7",
+        "type": "mqtt-broker",
+        "name": "Local Mosquitto",
+        "broker": "127.0.0.1",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]

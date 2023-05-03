@@ -1,0 +1,1388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26" zv="IRIS for Windows (x86-64) 2022.1.2 (Build 574U)" ts="2023-05-03 12:56:23">
+<Class name="IoT.BO.BOAlertaTemperatura">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66228,78647.069579</TimeChanged>
+<TimeCreated>66105,56502.304439</TimeCreated>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+	<MapItem MessageType="IoT.Messages.Medicion">
+		<Method>EnviaAlerta</Method>
+	</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+
+<Method name="EnviaAlerta">
+<FormalSpec>Request:IoT.Messages.Medicion,*Response:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ set tSC = $$$OK
+ 	try{
+ 	  set text = "<html><body>Temperatura Alta : "_Request.Valor_ " "_Request.UdM_"</body></html>"
+ 	  
+ 	  Set msg=##class(%Net.MailMessage).%New()
+      set msg.IsHTML = 1
+	  Set msg.Subject="Alerta desde IRIS"
+	  Set msg.From="Alertas IoT <alertas.zensum@hdaingenieros.com>"
+	  //Do msg.To.Insert("rlarenas@yahoo.com")
+      Do msg.To.Insert("rodrigo.larenas@intersystems.com")
+      
+      Do msg.TextData.Write(text)
+
+      Set auth=##class(%Net.Authenticator).%New() ; use default authentication list
+    #;   Set auth.UserName="apikey"
+    #;   Set auth.Password="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"
+	set auth.UserName = "alertas.zensum@hdaingenieros.com"
+    set auth.Password = "zensum.2021***"
+    
+
+	  Set smtp=##class(%Net.SMTP).%New()
+      set smtp.smtpserver = "mail.hdaingenieros.com"
+      set smtp.port ="587"
+	#;   Set smtp.smtpserver="smtp.sendgrid.net"
+      Set smtp.authenticator=auth
+    #;   set smtp.username = "apikey"
+    #;   set smtp.password = "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"
+ 	
+	  $$$ThrowOnError(smtp.Send(msg))
+ 		}Catch(ex){
+	  Write "Error ", ex.DisplayString(),!
+	}
+ Quit tSC
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="IoT.BO.BOSaveMessureFromRead">
+<Super>Ens.BusinessOperation</Super>
+<TimeChanged>66469,36017.0405964</TimeChanged>
+<TimeCreated>66101,62674.890218</TimeCreated>
+
+<Method name="SaveData">
+<FormalSpec>Request:IoT.Messages.Medicion,*Response:Ens.Response</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+		Set tSC = $$$OK
+		$$$TRACE("Valor : " _ Request.Valor)
+		Set tSC = ##class(IoT.Clases.Medicion).GuardaLectura(Request)
+		$$$TRACE("Respuesta : " _ tSC)
+		Quit tSC
+]]></Implementation>
+</Method>
+
+<XData name="MessageMap">
+<Data><![CDATA[
+<MapItems>
+	<MapItem MessageType="IoT.Messages.Medicion">
+		<Method>SaveData</Method>
+	</MapItem>
+</MapItems>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="IoT.BS.TestReq">
+<Super>Ens.BusinessService,EnsLib.REST.GenericService</Super>
+<TimeChanged>66134,53919.5518861</TimeChanged>
+<TimeCreated>66134,42580.7061055</TimeCreated>
+
+<XData name="UrlMap">
+<XMLNamespace>http://www.intersystems.com/urlmap</XMLNamespace>
+<Data><![CDATA[
+<Routes>
+<Route Url="/uno" Method="POST" Call="uno"/>
+</Routes>
+]]></Data>
+</XData>
+
+<Method name="uno">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	w "Uno"	
+	quit
+]]></Implementation>
+</Method>
+
+<Method name="OnProcessInput">
+<FormalSpec><![CDATA[pInput:%RegisteredObject,*pOutput:%RegisteredObject,&pHint:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	 
+	 set tSC = $$$OK
+	 
+	 quit tSC
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="IoT.Clases.Medicion">
+<DdlAllowed>1</DdlAllowed>
+<Super>%Persistent,%REST.Impl</Super>
+<TimeChanged>66227,62171.553074</TimeChanged>
+<TimeCreated>66101,62268.324265</TimeCreated>
+
+<Property name="Metrica">
+<Type>%String</Type>
+</Property>
+
+<Property name="Valor">
+<Type>%String</Type>
+</Property>
+
+<Property name="UdM">
+<Type>%String</Type>
+</Property>
+
+<UDLText name="T">
+<Content><![CDATA[
+// Property TimeStamp As %DateTime [ InitialExpression = {$ZDATETIME($ZTIMESTAMP,3,1,4)} ];
+
+]]></Content>
+</UDLText>
+
+<Property name="TimeStamp">
+<Type>%DateTime</Type>
+<InitialExpression>$ZDATETIME($H,3,1,4)</InitialExpression>
+</Property>
+
+<Index name="TSMetrica">
+<Type>bitmap</Type>
+<Properties>Metrica,TimeStamp</Properties>
+</Index>
+
+<Method name="GuardaLectura">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>DataIn:IoT.Messages.Medicion</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	
+	set tSC = $$$OK
+	
+	set med = ##class(IoT.Clases.Medicion).%New()
+	set med.Metrica = DataIn.Metrica
+	set med.Valor = DataIn.Valor
+	set med.UdM = DataIn.UdM
+	
+	set tSC = med.%Save()
+	
+	quit tSC
+]]></Implementation>
+</Method>
+
+<Method name="GetMediciones">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Metrica,fechaDesde,fechaHasta</FormalSpec>
+<ReturnType>%Stream.Object</ReturnType>
+<Implementation><![CDATA[
+	
+	
+	Set Out =[]
+	Try{
+		set sql = "SELECT ID,Metrica,TimeStamp,UdM, Valor "_
+			      "FROM IoT_Clases.Medicion "_
+			      "WHERE Metrica = '"_Metrica_"' "_
+			      "AND timestamp BETWEEN TO_DATE('"_fechaDesde_"','YYYY/MM/DD') AND TO_DATE('"_fechaHasta_"','YYYY/MM/DD') "_
+			      "ORDER BY TimeStamp DESC"
+			  
+		//return sql
+		Set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+		
+		While rs.%Next(){	
+			//return "OK"
+			Do Out.%Push({
+                "ID": (rs.%Get("ID")),
+				"Metrica":  (rs.%Get("Metrica")),
+				"TimeStamp":  (rs.%Get("TimeStamp")),
+				"UdM":    (rs.%Get("UdM")),
+				"Valor":    (rs.%Get("Valor"))
+			})
+            }
+    	
+        Return Out.%ToJSON()
+	
+		}
+		Catch(e){
+				Do ..%SetStatusCode("500")
+				Return {"errormessage": "Server error"}
+		}
+]]></Implementation>
+</Method>
+
+<Method name="GetXMediciones">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Metrica,Cantidad</FormalSpec>
+<ReturnType>%Stream.Object</ReturnType>
+<Implementation><![CDATA[
+	
+	
+	Set Out =[]
+	Try{
+		set sql = "SELECT * FROM (" _
+				  "SELECT TOP "_Cantidad_" ID,Metrica,TimeStamp,UdM, Valor "_
+			      "FROM IoT_Clases.Medicion "_
+			      "WHERE Metrica ='"_Metrica_"' "_
+			      "ORDER BY TimeStamp DESC) "_
+				  "ORDER BY TimeStamp ASC"
+
+			  
+		//return sql
+		Set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+		
+		While rs.%Next(){	
+			//return "OK"
+			Do Out.%Push({
+                "ID": (rs.%Get("ID")),
+				"Metrica":  (rs.%Get("Metrica")),
+				"TimeStamp":  (rs.%Get("TimeStamp")),
+				"UdM":    (rs.%Get("UdM")),
+				"Valor":    (rs.%Get("Valor"))
+			})
+            }
+    	
+        Return Out.%ToJSON()
+	
+		}
+		Catch(e){
+				Do ..%SetStatusCode("500")
+				Return {"errormessage": "Server error"}
+		}
+]]></Implementation>
+</Method>
+
+<Method name="GetLastMedicion">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Metrica</FormalSpec>
+<ReturnType>%Stream.Object</ReturnType>
+<Implementation><![CDATA[
+	
+	
+	Set Out =[]
+	Try{
+		set sql = "SELECT TOP 1 ID,Metrica,TimeStamp,UdM, Valor "_
+			  "FROM IoT_Clases.Medicion "_
+			  "WHERE Metrica = '"_Metrica_"' "_
+			  "ORDER BY TimeStamp DESC"
+			  
+		Set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+		While rs.%Next() {
+			Do Out.%Push({
+                "ID": (rs.%Get("ID")),
+				"Metrica":  (rs.%Get("Metrica")),
+				"TimeStamp":  (rs.%Get("TimeStamp")),
+				"UdM":    (rs.%Get("UdM")),
+				"Valor":    (rs.%Get("Valor"))
+			})
+            }
+    	kill rs
+        Return Out.%ToJSON()
+	
+	}
+	Catch(e){
+			Do ..%SetStatusCode("500")
+			Return {"errormessage": "Server error"}
+		}
+]]></Implementation>
+</Method>
+
+<Method name="GetMaxMedicion">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Metrica</FormalSpec>
+<ReturnType>%Stream.Object</ReturnType>
+<Implementation><![CDATA[
+	
+	
+	Set Out =[]
+	Try{
+		set sql = "SELECT TOP 1 ID,Metrica,TimeStamp,UdM, Valor "_
+			  "FROM IoT_Clases.Medicion "_
+			  "WHERE Metrica = '"_Metrica_"' "_
+			  "ORDER BY Valor DESC"
+			  
+		Set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+		While rs.%Next() {
+			Do Out.%Push({
+                "ID": (rs.%Get("ID")),
+				"Metrica":  (rs.%Get("Metrica")),
+				"TimeStamp":  (rs.%Get("TimeStamp")),
+				"UdM":    (rs.%Get("UdM")),
+				"Valor":    (rs.%Get("Valor"))
+			})
+            }
+    	kill rs
+        Return Out.%ToJSON()
+	
+	}
+	Catch(e){
+			Do ..%SetStatusCode("500")
+			Return {"errormessage": "Server error"}
+		}
+]]></Implementation>
+</Method>
+
+<Method name="GetMinMedicion">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Metrica</FormalSpec>
+<ReturnType>%Stream.Object</ReturnType>
+<Implementation><![CDATA[
+	
+	
+	Set Out =[]
+	Try{
+		set sql = "SELECT TOP 1 ID,Metrica,TimeStamp,UdM, Valor "_
+			  "FROM IoT_Clases.Medicion "_
+			  "WHERE Metrica = '"_Metrica_"' "_
+			  "ORDER BY Valor ASC"
+			  
+		Set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+		While rs.%Next() {
+			Do Out.%Push({
+                "ID": (rs.%Get("ID")),
+				"Metrica":  (rs.%Get("Metrica")),
+				"TimeStamp":  (rs.%Get("TimeStamp")),
+				"UdM":    (rs.%Get("UdM")),
+				"Valor":    (rs.%Get("Valor"))
+			})
+            }
+    	kill rs
+        Return Out.%ToJSON()
+	
+	}
+	Catch(e){
+			Do ..%SetStatusCode("500")
+			Return {"errormessage": "Server error"}
+		}
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DataLocation>^IoT.Clases.MedicionD</DataLocation>
+<DefaultData>MedicionDefaultData</DefaultData>
+<IdLocation>^IoT.Clases.MedicionD</IdLocation>
+<IndexLocation>^IoT.Clases.MedicionI</IndexLocation>
+<StreamLocation>^IoT.Clases.MedicionS</StreamLocation>
+<ExtentSize>48879</ExtentSize>
+<Data name="MedicionDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Metrica</Value>
+</Value>
+<Value name="3">
+<Value>Valor</Value>
+</Value>
+<Value name="4">
+<Value>UdM</Value>
+</Value>
+<Value name="5">
+<Value>TimeStamp</Value>
+</Value>
+</Data>
+<Property name="%%CLASSNAME">
+<Selectivity>100.0000%</Selectivity>
+<AverageFieldSize>2</AverageFieldSize>
+<Histogram>$lb(.06666666666666666667,0,16,$lb("-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000","-10000000000000000000"),$lb(21,21,21,21,21,21,21,21,21,21,21,21,21,21,21),$lb(758198320,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,758198320))</Histogram>
+</Property>
+<Property name="%%ID">
+<Selectivity>1</Selectivity>
+<AverageFieldSize>4</AverageFieldSize>
+</Property>
+<Property name="Metrica">
+<Selectivity>50.0000%</Selectivity>
+<AverageFieldSize>11.06</AverageFieldSize>
+<Histogram>$lb(.06666666666666666667,0,0,$lb(" HUMEDAD"," HUMEDAD"," HUMEDAD"," HUMEDAD"," HUMEDAD"," HUMEDAD"," HUMEDAD"," HUMEDAD"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"," TEMPERATURA"),$lb(9,9,9,9,9,9,9,1,13,13,13,13,13,13,13),$lb(541611341,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1213549893,1413827920,0,0,0,0,0,0,0,0,0,0,0,0,0,0,542393677))</Histogram>
+</Property>
+<Property name="TimeStamp">
+<Selectivity>0.4639%</Selectivity>
+<AverageFieldSize>21</AverageFieldSize>
+<Histogram>$lb(.06666666666666666667,0,0,$lb("2021-12-23 18:46:48","2021-12-24 11:41:11","2021-12-27 15:51:27","2021-12-27 15:51:28","2021-12-27 15:51:32","2021-12-27 15:51:34","2021-12-27 15:51:37","2021-12-27 15:51:38","2021-12-27 15:51:43","2021-12-27 15:51:45","2021-12-27 15:51:52","2021-12-27 15:52:03","2021-12-27 15:52:08","2021-12-27 15:52:14","2021-12-27 15:52:23","2021-12-27 15:52:29"),$lb(9,9,18,17,18,18,18,17,18,17,15,18,17,17,18),$lb(842019377,857747768,874524977,874524977,924856629,922746880,939524096,842530816,858914816,838860800,872415232,872415232,922746880,922746880,939524096,859308032,875757568,855638016,889192448,875888640,892469248,825898290,842674227,855638016,939524096,808976384,825491456,825491456,842203136,855638016,956301312,842019377))</Histogram>
+</Property>
+<Property name="UdM">
+<Selectivity>33.3333%</Selectivity>
+<AverageFieldSize>3.52</AverageFieldSize>
+<Histogram>$lb(.06666666666666666667,0,0,$lb(" %"," %"," %"," %"," %"," %"," %"," %"," *C"," *C"," *C"," *C"," *C"," *C"," *C"," Â°C"),$lb(3,3,3,3,3,3,3,1,4,4,4,4,4,4,1),$lb(539295744,0,0,0,0,0,0,0,0,0,0,0,0,0,0,620756992,709033984,0,0,0,0,0,0,0,0,0,0,0,0,709033984,3266331392,549630019))</Histogram>
+</Property>
+<Property name="Valor">
+<Selectivity>1.1850%</Selectivity>
+<OutlierSelectivity>.242152:"28.00"</OutlierSelectivity>
+<AverageFieldSize>7</AverageFieldSize>
+<Histogram>$lb(.06666666666666666667,0,0,$lb(" 23.80"," 24.80"," 26.70"," 27.10"," 28.00"," 28.00"," 28.00"," 28.00"," 33.00"," 35.00"," 35.00"," 35.00"," 36.00"," 37.00"," 39.00"," 68.00"),$lb(2,2,2,2,7,7,7,1,2,7,7,2,2,2,1),$lb(540160814,858667056,875444272,875444272,908998448,908998448,925774128,925774128,942551088,0,0,0,0,0,0,842542640,858992176,858665008,892219440,0,0,0,0,892219440,908996656,908996656,925773872,925773872,959328304,859385392,909651504,540424238))</Histogram>
+</Property>
+<SQLMap name="$Medicion">
+<BlockCount>-4</BlockCount>
+</SQLMap>
+<SQLMap name="IDKEY">
+<BlockCount>-1340</BlockCount>
+</SQLMap>
+<SQLMap name="TSMetrica">
+<BlockCount>-164</BlockCount>
+</SQLMap>
+</Storage>
+</Class>
+
+
+<Class name="IoT.Devices.DTH11">
+<Super>%SerialObject,%REST.Impl</Super>
+<TimeChanged>66513,57501.5546682</TimeChanged>
+<TimeCreated>66484,56266.5729073</TimeCreated>
+
+<Method name="ReadComPort">
+<Description>
+Lector del sensor de temperatura</Description>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import csv,sys,time,serial
+	print("Leyendo Puerto COM")
+	ser = serial.Serial('COM4', baudrate = 9600)
+    
+	while 1:
+		try:
+			curr_line = ser.readline()
+			print(curr_line)
+			self.SendData(curr_line[0: -2])
+			ser.flushInput()
+
+		except KeyboardInterrupt:
+			print('Salir')
+			break
+
+
+        
+	print('Out')
+]]></Implementation>
+</Method>
+
+<Method name="SendData">
+<FormalSpec>Data:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set vMsg = ##class(EnsLib.MQTT.Message).%New()	
+	set vResponse = ""
+
+	set dataJson = ##class(%DynamicObject).%FromJSON(..XML2JSON(Data))
+
+	 set strJson ="{""Medicion"":{""Tipo"":["""
+	 			 _dataJson.Medicion.Tipo_"""],""Valor"":["""
+				 _dataJson.Medicion.Valor_"""],""Udm"":["""
+				 _dataJson.Medicion.Udm_"""]}}"
+	
+	#; w strJson
+	set vMsg.StringValue = strJson
+	#; zw vMsg
+	set tSc = ##class(Ens.Director).CreateBusinessService("ArduinoCOM4In",.vBp)
+
+	set tSc = vBp.OnProcessInput(vMsg,.vResponse)
+
+	k Vbp
+	k vMsg
+	#; zw vResponse
+
+	quit tSc
+]]></Implementation>
+</Method>
+
+<Method name="XML2JSON">
+<FormalSpec>iXml:%String</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import xmltodict, json
+    
+	#; print(iXml)
+	obj = xmltodict.parse(iXml)
+	return(json.dumps(obj))
+]]></Implementation>
+</Method>
+
+<Method name="ReadXlsx">
+<FormalSpec>file:%String</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import pandas as pd
+	df = pd.read_excel(file)
+	print(df)
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Serial</Type>
+<StreamLocation>^IoT.Devices.DTH11S</StreamLocation>
+</Storage>
+</Class>
+
+
+<Class name="IoT.Devices.MAX30102">
+<Super>%SerialObject,%REST.Impl</Super>
+<TimeChanged>66483,56294.6372817</TimeChanged>
+<TimeCreated>66108,45831.8327115</TimeCreated>
+
+<Method name="ReadCOM">
+<Description>
+Lector de data del oximetro</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Secs</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	
+	import csv,sys,time,serial
+	from datetime import datetime, timedelta
+	
+	all_data = []
+	start_word = False
+	print('******')
+	print(sys.version)
+	print(sys.path)
+	print('******')
+
+	ser = serial.Serial('COM4', baudrate = 115200)
+	#; if not ser.isOpen():
+	#; 	ser.Open()
+	#; else:
+	#; 	ser.Close()
+	
+	
+	dtStop = datetime.now() + timedelta(seconds=Secs)
+	while dtStop > datetime.now():
+		try:
+			curr_line = ser.readline()
+			print(curr_line)
+			#; if start_word == False:
+			#; 	#print("False")
+			#; 	if curr_line[0:-2] == b'MAX30102':
+			#; 		#print(curr_line[0: -2])
+			#; 		start_word = True
+			#; 		print('vamos')
+			#; 		continue
+			#; else:
+			#; 	continue
+			#;all_data.append(curr_line[0: -2])
+			#self.Muestra(curr_line[0: -2])
+			ser.flushInput()
+		except KeyboardInterrupt:
+			print('Error')
+			break
+	self.MuestraArr(all_data)
+	print('Out')
+]]></Implementation>
+</Method>
+
+<Method name="ReadComPort">
+<Description>
+Lector del sensor de temperatura</Description>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import csv,sys,time,serial
+	print("Leyendo Puerto COM")
+	ser = serial.Serial('COM4', baudrate = 9600)
+    
+	while 1:
+		try:
+			curr_line = ser.readline()
+			print(curr_line)
+			self.SendData(curr_line[0: -2])
+			ser.flushInput()
+		except KeyboardInterrupt:
+			print('Salir')
+			break
+
+	print('Out')
+]]></Implementation>
+</Method>
+
+<Method name="PythonCalendar">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>yy,mm</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+# Program to display calendar of the given month and year
+
+# #importing calendar module
+import calendar
+
+#; yy = 2014  # year
+#; mm = 11    # month
+
+# To take month and year input from the user
+#yy = int(input("Enter year: "))
+#mm = int(input("Enter month: "))
+
+# display the calendar
+print(calendar.month(yy, mm))
+]]></Implementation>
+</Method>
+
+<Method name="PythonConverter">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dec</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	print("EL Valor decimal es : ", dec, "is:")
+	print(bin(dec), "Binario.")
+	print(oct(dec), "Octal")
+	print(hex(dec), "Hexadecimal.")
+]]></Implementation>
+</Method>
+
+<Method name="Muestra">
+<FormalSpec>data</FormalSpec>
+<Implementation><![CDATA[
+ set Out = []
+ set dataList =  $LFS(data,",")
+ 			do Out.%Push({
+                "Micros": ($P(data,",",1)),
+				"FifoIR":  ($P(data,",",2)),
+				"FifoRED":  ($P(data,",",3))
+			})
+
+ zw Out.%ToJSON()
+]]></Implementation>
+</Method>
+
+<Method name="SendData">
+<FormalSpec>Data:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+
+	set vMsg = ##class(EnsLib.MQTT.Message).%New()	
+	set vResponse = ""
+
+	set dataJson = ##class(%DynamicObject).%FromJSON(..XML2JSON(Data))
+
+	 set strJson ="{""Medicion"":{""Tipo"":["""
+	 			 _dataJson.Medicion.Tipo_"""],""Valor"":["""
+				 _dataJson.Medicion.Valor_"""],""Udm"":["""
+				 _dataJson.Medicion.Udm_"""]}}"
+	
+	#; w strJson
+	set vMsg.StringValue = strJson
+	#; zw vMsg
+	set tSc = ##class(Ens.Director).CreateBusinessService("ArduinoCOM4In",.vBp)
+
+	set tSc = vBp.OnProcessInput(vMsg,.vResponse)
+
+	k Vbp
+	k vMsg
+	#; zw vResponse
+
+	quit tSc
+]]></Implementation>
+</Method>
+
+<Method name="XML2JSON">
+<FormalSpec>iXml:%String</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import xmltodict, json
+    
+	#; print(iXml)
+	obj = xmltodict.parse(iXml)
+	return(json.dumps(obj))
+]]></Implementation>
+</Method>
+
+<Method name="wspSend">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>msg</FormalSpec>
+<Language>python</Language>
+<Implementation><![CDATA[
+	import pywhatkit as kit
+
+	number = '+5691248430'
+
+	kit.sendwhatmsg(number,
+	'Hola',15,7)
+]]></Implementation>
+</Method>
+
+<Method name="MuestraArr">
+<FormalSpec>data</FormalSpec>
+<Implementation><![CDATA[
+
+ w data
+]]></Implementation>
+</Method>
+
+<Method name="ShowData">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Secs</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set sc = $$$OK
+	set com  = ##class(IoT.Devices.MAX30102).%New()
+
+	do com.ReadCOM(Secs)
+
+	Return sc
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Serial</Type>
+<StreamLocation>^IoT.Devices.MAX30102S</StreamLocation>
+</Storage>
+</Class>
+
+
+<Class name="IoT.Messages.Medicion">
+<Super>Ens.Request</Super>
+<TimeChanged>66434,57992.2754045</TimeChanged>
+<TimeCreated>66101,61130.264921</TimeCreated>
+
+<Property name="Metrica">
+<Type>%String</Type>
+</Property>
+
+<Property name="Valor">
+<Type>%String</Type>
+</Property>
+
+<Property name="UdM">
+<Type>%String</Type>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>MedicionDefaultData</DefaultData>
+<Data name="MedicionDefaultData">
+<Subscript>"Medicion"</Subscript>
+<Value name="1">
+<Value>Metrica</Value>
+</Value>
+<Value name="2">
+<Value>Valor</Value>
+</Value>
+<Value name="3">
+<Value>UdM</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="IoT.ProcessDataFromSensor.Context">
+<Description>
+This class is generated by the IoT.ProcessDataFromSensor BPL class.
+This class should not be edited or modified in any way.
+Do not make direct use of this class in your application.</Description>
+<ClassType>persistent</ClassType>
+<CompileAfter>IoT.ProcessDataFromSensor</CompileAfter>
+<IncludeCode/>
+<ProcedureBlock>1</ProcedureBlock>
+<Super>Ens.BP.Context</Super>
+<TimeChanged>66232,41508.2110159</TimeChanged>
+<TimeCreated>66101,56601.256761</TimeCreated>
+<GeneratedBy>Ens.BPL.Compiler.CLS</GeneratedBy>
+
+<Property name="MedIn">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Property name="MsgMedicion">
+<Type>IoT.Messages.Medicion</Type>
+</Property>
+
+<Property name="OutMQTT">
+<Type>EnsLib.MQTT.Message</Type>
+</Property>
+
+<Property name="Temp">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Property name="ValorIn">
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+<DefaultData>ContextDefaultData1</DefaultData>
+<Data name="ContextDefaultData1">
+<Structure>listnode</Structure>
+<Subscript>"Context"</Subscript>
+<Value name="1">
+<Value>Temp</Value>
+</Value>
+<Value name="2">
+<Value>ValorIn</Value>
+</Value>
+<Value name="3">
+<Value>TipoMed</Value>
+</Value>
+<Value name="4">
+<Value>MedIn</Value>
+</Value>
+<Value name="5">
+<Value>MsgMedicion</Value>
+</Value>
+<Value name="6">
+<Value>OutMQTT</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="IoT.ProcessDataFromSensor.Thread1">
+<Description>
+This class is generated by the IoT.ProcessDataFromSensor BPL class.
+This class should not be edited or modified in any way.
+Do not make direct use of this class in your application.</Description>
+<ClassType>persistent</ClassType>
+<CompileAfter>IoT.ProcessDataFromSensor</CompileAfter>
+<IncludeCode/>
+<ProcedureBlock>1</ProcedureBlock>
+<Super>Ens.BP.Thread</Super>
+<TimeChanged>66232,41509.7836565</TimeChanged>
+<TimeCreated>66232,41508.2024251</TimeCreated>
+<GeneratedBy>Ens.BPL.Compiler.CLS</GeneratedBy>
+
+<Method name="S1">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Set status=$$$OK,context.ValorIn=request.StringValue
+ If $$$ISERR(status) Quit
+ Do {
+ set context.MedIn= ##class(%DynamicObject).%FromJSON(context.ValorIn)
+ } while (0)
+ If $$$ISERR(status) Quit
+ Do ##class(Ens.Util.Trace).WriteTrace("user","IoT.ProcessDataFromSensor","S1",context.MedIn.Medicion.Tipo.%Get(0))
+ Set iscTemp=context.MsgMedicion
+ Set status=$classmethod("IoT.ReadToMedicion","Transform",request,.iscTemp,"")
+ If $$$ISERR(status) Quit
+ Set context.MsgMedicion=iscTemp
+ Do ##class(Ens.Util.Trace).WriteTrace("user","IoT.ProcessDataFromSensor","S1",context.MsgMedicion.Valor)
+ If (context.MsgMedicion.Metrica="Temperatura") {
+ Set ..%NextState="S3"
+ } else {
+ Set ..%NextState="S2"
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S1") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S10">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Set ..%NextState="S2"
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S10") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S11">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S12"
+ } else {
+    Set ..%NextState="S11",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S11") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S12">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Do process.ClearAllPendingResponses()
+ Set ..%NextState="Stop"
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S12") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S2">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ #; --- Begin Call BO Save Data ---
+ #; --- Begin Request ---
+ Set callrequest=##class(IoT.Messages.Medicion).%New()
+ If '$IsObject(callrequest) Set status=%objlasterror Quit
+ Set status=$$$OK,callrequest=context.MsgMedicion
+ If $$$ISERR(status) Quit
+ Set status=..MakeAsyncCall("","BO.GuardaLectura",callrequest,"BO Save Data",0,0,"BO Save Data",1)
+ If $$$ISERR(status) Quit
+ Kill callrequest
+ #; --- End Request ---
+ #; --- End Call BO Save Data ---
+ Do ..%PendingResponses.Clear(),..%SyncResponses.Clear()
+ Set ..%SyncTimedOut=0,..%PendingTimeout="",..%PendingAlarmHandle="",..%SyncName=""
+ If ..%Process.IsResponsePending("BO Save Data") Do ..%PendingResponses.SetAt("","BO Save Data")
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S12"
+ } else {
+    Set ..%NextState="S11",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S2") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S3">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Do ##class(Ens.DataTransform).instantiateProps(context,"context.OutMQTT.Topic")
+ Set status=$$$OK,context.OutMQTT.Topic="LED"
+ If $$$ISERR(status) Quit
+ If ((context.MsgMedicion.Valor>="30")) {
+ Set ..%NextState="S5"
+ } else {
+ Set ..%NextState="S8"
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S3") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S4">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ #; --- Begin Call Envia Alerta COM4 MQTT ---
+ #; --- Begin Request ---
+ Set callrequest=##class(EnsLib.MQTT.Message).%New()
+ If '$IsObject(callrequest) Set status=%objlasterror Quit
+ Set status=$$$OK,callrequest=context.OutMQTT
+ If $$$ISERR(status) Quit
+ Set status=..MakeAsyncCall("","AlertaCOM4",callrequest,"Envia Alerta COM4 MQTT",0,0,"Envia Alerta COM4 MQTT",0)
+ If $$$ISERR(status) Quit
+ Kill callrequest
+ #; --- End Request ---
+ #; --- End Call Envia Alerta COM4 MQTT ---
+ Do ..%PendingResponses.Clear(),..%SyncResponses.Clear()
+ Set ..%SyncTimedOut=0,..%PendingTimeout="",..%PendingAlarmHandle="",..%SyncName=""
+ If ..%Process.IsResponsePending("Envia Alerta COM4 MQTT") Do ..%PendingResponses.SetAt("","Envia Alerta COM4 MQTT")
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S10"
+ } else {
+    Set ..%NextState="S9",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S4") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S5">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Set status=..%Process.SendAlert(##class(Ens.AlertRequest).%New($lb(..%Process.%ConfigName,context.MsgMedicion.Metrica _ " " _ context.MsgMedicion.Valor)))
+ If $$$ISERR(status) Quit
+ Do ##class(Ens.DataTransform).instantiateProps(context,"context.OutMQTT.StringValue")
+ Set status=$$$OK,context.OutMQTT.StringValue="1"
+ If $$$ISERR(status) Quit
+ #; --- Begin Call Envia Alerta Mail ---
+ #; --- Begin Request ---
+ Set callrequest=##class(IoT.Messages.Medicion).%New()
+ If '$IsObject(callrequest) Set status=%objlasterror Quit
+ Set status=$$$OK,callrequest=context.MsgMedicion
+ If $$$ISERR(status) Quit
+ Set status=..MakeAsyncCall("","Alerta Temperatura",callrequest,"Envia Alerta Mail",0,0,"Envia Alerta Mail",0)
+ If $$$ISERR(status) Quit
+ Kill callrequest
+ #; --- End Request ---
+ #; --- End Call Envia Alerta Mail ---
+ Do ..%PendingResponses.Clear(),..%SyncResponses.Clear()
+ Set ..%SyncTimedOut=0,..%PendingTimeout="",..%PendingAlarmHandle="",..%SyncName=""
+ If ..%Process.IsResponsePending("Envia Alerta Mail") Do ..%PendingResponses.SetAt("","Envia Alerta Mail")
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S7"
+ } else {
+    Set ..%NextState="S6",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S5") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S6">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S7"
+ } else {
+    Set ..%NextState="S6",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S6") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S7">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Set ..%NextState="S4"
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S7") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S8">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ Do ##class(Ens.DataTransform).instantiateProps(context,"context.OutMQTT.StringValue")
+ Set status=$$$OK,context.OutMQTT.StringValue="0"
+ If $$$ISERR(status) Quit
+ Set ..%NextState="S4"
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S8") Goto Exit
+]]></Implementation>
+</Method>
+
+<Method name="S9">
+<FormalSpec>process:Ens.BusinessProcess,context:Ens.BP.Context,synctimedout:%Boolean,syncresponses:%ArrayOfObjects(ELEMENTTYPE="%Library.Persistent"),request:%Library.Persistent,response:%Library.Persistent</FormalSpec>
+<Language>objectscript</Language>
+<PublicList>process,context</PublicList>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+ Set $ZT="Trap",status=$$$OK do {
+ If ..%PendingResponses.Count()=0 {
+    Set ..%NextState="S10"
+ } else {
+    Set ..%NextState="S9",..%Wait=1
+ }
+ } while (0)
+Exit Quit ..ManageState(status)
+Trap Set $ZT="",status=..ManageStatus(status,"S9") Goto Exit
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Class name="IoT.ProcessDataFromSensor">
+<Description>
+</Description>
+<Super>Ens.BusinessProcessBPL</Super>
+<TimeChanged>66232,41504.7198151</TimeChanged>
+<TimeCreated>66101,56488.350534</TimeCreated>
+
+<XData name="BPL">
+<Description>
+BPL Definition</Description>
+<XMLNamespace>http://www.intersystems.com/bpl</XMLNamespace>
+<Data><![CDATA[
+<process language='objectscript' request='EnsLib.MQTT.Message ' height='2200' width='2000' >
+<context>
+<property name='Temp' type='%String' instantiate='0' >
+<parameters>
+<parameter name='MAXLEN'  value='50' />
+</parameters>
+</property>
+<property name='ValorIn' type='%String' instantiate='0' >
+<parameters>
+<parameter name='MAXLEN'  value='50' />
+</parameters>
+</property>
+<property name='MedIn' type='%String' instantiate='0' >
+<parameters>
+<parameter name='MAXLEN'  value='50' />
+</parameters>
+</property>
+<property name='MsgMedicion' type='IoT.Messages.Medicion' instantiate='0' />
+<property name='OutMQTT' type='EnsLib.MQTT.Message' instantiate='0' />
+</context>
+<sequence xend='200' yend='1950' >
+<assign name="Recieve Data" property="context.ValorIn" value="request.StringValue" action="set" xpos='200' ypos='250' />
+<code name='Set Data In' xpos='200' ypos='350' >
+<![CDATA[ set context.MedIn= ##class(%DynamicObject).%FromJSON(context.ValorIn)]]]]><![CDATA[>
+</code>
+<trace name='ViewValue' value='context.MedIn.Medicion.Tipo.%Get(0)' xpos='200' ypos='450' />
+<transform name='ReadToiMedicion' class='IoT.ReadToMedicion' source='request' target='context.MsgMedicion' xpos='200' ypos='550' />
+<trace name='Ver Temperatura Mensaje' value='context.MsgMedicion.Valor' xpos='200' ypos='650' />
+<if name='Check Metrica' condition='context.MsgMedicion.Metrica="Temperatura"' xpos='200' ypos='750' xend='200' yend='1750' >
+<annotation><![CDATA[Solo Temperatura para encender LEDS]]]]><![CDATA[></annotation>
+<true>
+<assign name="Topico OUT" property="context.OutMQTT.Topic" value="&quot;LED&quot;" action="set" xpos='335' ypos='900' />
+<if name='Check Valor' condition='(context.MsgMedicion.Valor&gt;="30")' xpos='335' ypos='1000' xend='335' yend='1550' >
+<annotation><![CDATA[Temperatura >= 30]]]]><![CDATA[></annotation>
+<true>
+<alert name='Temperatura Alta' value='context.MsgMedicion.Metrica _ " " _ context.MsgMedicion.Valor' xpos='605' ypos='1150' >
+<annotation><![CDATA[Corresponde Enviar Alerta]]]]><![CDATA[></annotation>
+</alert>
+<assign name="Prede LED Rojo" property="context.OutMQTT.StringValue" value="&quot;1&quot;" action="set" xpos='605' ypos='1250' />
+<call name='Envia Alerta Mail' target='Alerta Temperatura' async='1' xpos='605' ypos='1350' >
+<annotation><![CDATA[Envia Alerta por Correo]]]]><![CDATA[></annotation>
+<request type='IoT.Messages.Medicion' >
+<assign property="callrequest" value="context.MsgMedicion" action="set" />
+</request>
+</call>
+<sync name='Sync Alerta Correo' calls='Envia Alerta Mail' type='all' xpos='605' ypos='1450' />
+</true>
+<false>
+<assign name="Prende Led Verde" property="context.OutMQTT.StringValue" value="&quot;0&quot;" action="set" xpos='335' ypos='1150' />
+</false>
+</if>
+<call name='Envia Alerta COM4 MQTT' target='AlertaCOM4' async='1' xpos='335' ypos='1650' >
+<annotation><![CDATA[Enciende LED Dependiendo de Temperatura]]]]><![CDATA[></annotation>
+<request type='EnsLib.MQTT.Message' >
+<assign property="callrequest" value="context.OutMQTT" action="set" />
+</request>
+</call>
+<sync name='Sync Envio Alerta COM 4' calls='Envia Alerta COM4 MQTT' type='all' xpos='821' ypos='1810' />
+</true>
+</if>
+<call name='BO Save Data' target='BO.GuardaLectura' async='0' xpos='200' ypos='1850' >
+<request type='IoT.Messages.Medicion' >
+<assign property="callrequest" value="context.MsgMedicion" action="set" />
+</request>
+</call>
+</sequence>
+</process>
+]]></Data>
+</XData>
+
+<Storage name="Default">
+<Type>%Storage.Persistent</Type>
+</Storage>
+</Class>
+
+
+<Class name="IoT.ReadToMedicion">
+<Super>Ens.DataTransformDTL</Super>
+<TimeChanged>66101,61975.525317</TimeChanged>
+<TimeCreated>66101,61619.002869</TimeCreated>
+<DependsOn>EnsLib.MQTT.Message,IoT.Messages.Medicion</DependsOn>
+
+<Parameter name="IGNOREMISSINGSOURCE">
+<Default>1</Default>
+</Parameter>
+
+<Parameter name="REPORTERRORS">
+<Default>1</Default>
+</Parameter>
+
+<Parameter name="TREATEMPTYREPEATINGFIELDASNULL">
+<Default>0</Default>
+</Parameter>
+
+<XData name="DTL">
+<XMLNamespace>http://www.intersystems.com/dtl</XMLNamespace>
+<Data><![CDATA[
+<transform sourceClass='EnsLib.MQTT.Message' targetClass='IoT.Messages.Medicion' create='new' language='objectscript' >
+<assign value='##class(%DynamicObject).%FromJSON(source.StringValue)' property='Data' action='set' />
+<assign value='Data.Medicion.Tipo.%Get(0)' property='target.Metrica' action='set' />
+<assign value='Data.Medicion.Valor.%Get(0)' property='target.Valor' action='set' />
+<assign value='Data.Medicion.Udm.%Get(0)' property='target.UdM' action='set' />
+</transform>
+]]></Data>
+</XData>
+</Class>
+
+
+<Class name="IoT.Servicios.Disp">
+<Super>%CSP.REST</Super>
+<TimeChanged>66597,46563.2386937</TimeChanged>
+<TimeCreated>66102,37802.370051</TimeCreated>
+
+<Parameter name="IgnoreWrites">
+<Description>
+Ignore any writes done directly by the REST method.</Description>
+<Default>1</Default>
+</Parameter>
+
+<Parameter name="CONVERTINPUTSTREAM">
+<Description>
+By default convert the input stream to Unicode</Description>
+<Default>1</Default>
+</Parameter>
+
+<Parameter name="CHARSET">
+<Description>
+The default response charset is utf-8</Description>
+<Default>utf-8</Default>
+</Parameter>
+
+<Parameter name="CONTENTTYPE">
+<Default>application/json</Default>
+</Parameter>
+
+<XData name="UrlMap">
+<XMLNamespace>http://www.intersystems.com/urlmap</XMLNamespace>
+<Data><![CDATA[
+<Routes>
+  <Route Url="/Mediciones/:Medicion" Method="Get" Call="getMediciones" Cors = "true"/>
+  <Route Url="/Mediciones/:Medicion/:Cantidad" Method="Get" Call="getXMediciones" Cors = "true"/>
+  <Route Url="/LastMedicion/:Medicion" Method="Get" Call="GetLast" Cors = "true" />
+  <Route Url="/MaxMedicion/:Medicion" Method="Get" Call="GetMax" Cors = "true" />
+  <Route Url="/MinMedicion/:Medicion" Method="Get" Call="GetMin" Cors = "true" />
+  </Routes>
+]]></Data>
+</XData>
+
+<Method name="GetMAX30102">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+        If '##class(%REST.Impl).%CheckAccepts("application/json,application/xml") Do ##class(%REST.Impl).%ReportRESTError(..#HTTP406NOTACCEPTABLE,$$$ERROR($$$RESTBadAccepts)) Quit
+        Set response=##class(IoT.Devices.MAX30102).ShowData()
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="getMediciones">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Medicion:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+        If '##class(%REST.Impl).%CheckAccepts("application/json,application/xml") Do ##class(%REST.Impl).%ReportRESTError(..#HTTP406NOTACCEPTABLE,$$$ERROR($$$RESTBadAccepts)) Quit
+        If '$data(%request.Data("fd",1)) Do ##class(%REST.Impl).%ReportRESTError(..#HTTP400BADREQUEST,$$$ERROR($$$RESTRequired,"fd")) Quit
+        If '$data(%request.Data("fh",1)) Do ##class(%REST.Impl).%ReportRESTError(..#HTTP400BADREQUEST,$$$ERROR($$$RESTRequired,"fh")) Quit
+
+        Set fd=%request.Data("fd",1)
+        Set fh=%request.Data("fh",1)
+       
+
+       
+        Set response=##class(IoT.Clases.Medicion).GetMediciones(Medicion, fd, fh)
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="getXMediciones">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Medicion:%String,Cantidad:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+       
+        Set response=##class(IoT.Clases.Medicion).GetXMediciones(Medicion, Cantidad)
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="GetLast">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Medicion:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+       
+        Set response=##class(IoT.Clases.Medicion).GetLastMedicion(Medicion)
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="GetMin">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Medicion:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+       
+        Set response=##class(IoT.Clases.Medicion).GetMinMedicion(Medicion)
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="GetMax">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>Medicion:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    Try {
+       
+        Set response=##class(IoT.Clases.Medicion).GetMaxMedicion(Medicion)
+        Do ##class(IoT.Clases.Medicion).%WriteResponse(response)
+    } Catch (ex) {
+        Do ##class(%REST.Impl).%ReportRESTError(..#HTTP500INTERNALSERVERERROR,ex.AsStatus(),$parameter("IoT.Clases.Medicion","ExposeServerExceptions"))
+    }
+    Quit $$$OK
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Package name="IoT" sqlname="IoT"/>
+</Export>
